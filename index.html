@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#e9dfc8">
+<title>Year Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Courier+Prime:wght@400;700&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #e9dfc8; --sheet: #f4ecda; --paper-2: #ddd1b7;
+    --ink: #1e1b17; --ink-soft: #5b5348; --muted: #6a5f50;
+    --terra: #a5452e;
+    --b-exact: #1f7a44; --b-close: #34598a; --b-near: #8f6512; --b-rough: #a5452e; --b-miss: #5b5348; --b-none: #8a8073;
+    --display: "IM Fell English", Georgia, serif;
+    --type: "Courier Prime", "Courier New", monospace;
+    --pencil: "Caveat", "Segoe Print", cursive;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink); font-family: var(--type); font-size: 16px; line-height: 1.45;
+    background-color: var(--page);
+    background-image: radial-gradient(circle at 18% 12%, rgba(165,69,46,.05) 0 2px, transparent 3px),
+                      radial-gradient(circle at 82% 64%, rgba(122,92,46,.06) 0 3px, transparent 4px);
+    background-size: 220px 260px, 310px 290px;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .wrap { max-width: 440px; margin: 0 auto; }
+
+  header { text-align: center; margin: 4px 0 14px; }
+  header h1 { font-family: var(--display); font-weight: 400; font-size: 30px; margin: 0; letter-spacing: .5px; }
+  header .meta { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-soft); }
+  header .rule { height: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding-top: 2px; margin: 8px 0 0; }
+
+  .sheet {
+    background: var(--sheet); padding: 22px 18px 20px; position: relative;
+    border: 1.5px solid var(--ink); box-shadow: inset 0 0 0 4px var(--sheet), inset 0 0 0 5px var(--ink-soft);
+  }
+  .count { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-soft); display: flex; justify-content: space-between; }
+  .ticks { letter-spacing: 4px; }
+  .prompt { font-family: var(--display); font-size: 25px; line-height: 1.2; margin: 14px 0 18px; }
+  .prompt.small { font-size: 19px; margin-bottom: 10px; color: var(--ink-soft); }
+  p { margin: 0 0 12px; }
+
+  .yearrow { display: flex; align-items: flex-end; justify-content: center; gap: 4px; border-bottom: 2px solid var(--ink); cursor: text; }
+  .yearrow:focus-within { border-bottom-color: var(--terra); }
+  .suffix { font: 400 30px/1 var(--display); color: var(--terra); padding: 0 0 13px; }
+  .link.eralink { margin: 6px auto 0; font-size: 13px; min-height: 40px; }
+  .link.eralink[aria-pressed="true"] { color: var(--terra); }
+  .yearrow input {
+    flex: 0 0 auto; width: 4.6ch; font: 700 34px/1 var(--type); text-align: center; color: var(--ink);
+    background: transparent; border: 0; border-radius: 0; padding: 6px 4px; height: 58px;
+  }
+  .yearrow input::placeholder { color: var(--paper-2); }
+  .yearrow input:focus { outline: none; }
+
+  .why { min-height: 22px; color: var(--terra); font-size: 14px; margin: 10px 0 8px; }
+
+  button { font-family: var(--type); }
+  .btn {
+    display: block; width: 100%; min-height: 50px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+    font: 700 15px var(--type); letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border-radius: 0;
+  }
+  .btn.primary { background: var(--ink); color: var(--sheet); }
+  .btn:active { transform: translateY(1px); }
+  .link { display: block; margin: 12px auto 0; background: none; border: 0; color: var(--ink-soft); font: 14px var(--type);
+          text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
+
+  .answer { font-family: var(--display); font-size: 64px; line-height: 1; text-align: center; margin: 6px 0 10px; }
+  .stampline { text-align: center; margin: 0 0 14px; }
+  .stamp {
+    display: inline-block; transform: rotate(-4deg); padding: 4px 12px; border: 3px double currentColor;
+    font: 700 16px var(--type); letter-spacing: 3px; text-transform: uppercase; opacity: .9;
+    animation: land .22s ease-out both;
+  }
+  /* one ink per band, from the Season 1 palette, hottest to coldest */
+  .exact { --band: var(--b-exact); } .close { --band: var(--b-close); } .near { --band: var(--b-near); }
+  .rough { --band: var(--b-rough); } .miss { --band: var(--b-miss); } .none { --band: var(--b-none); }
+  .stamp { color: var(--band); }
+  @keyframes land { from { transform: rotate(-4deg) scale(1.35); opacity: 0; } to { transform: rotate(-4deg) scale(1); opacity: .9; } }
+  .key { display: flex; flex-wrap: wrap; gap: 10px 8px; justify-content: center; margin: 4px 0 18px; }
+  .key .stamp { font-size: 12px; letter-spacing: 1.5px; padding: 3px 8px; animation: none; }
+  .key .stamp:nth-child(even) { transform: rotate(3deg); }
+  .yours { font-family: var(--pencil); font-size: 24px; text-align: center; color: var(--ink-soft); margin-bottom: 14px; }
+  .fact { border-top: 1px solid var(--paper-2); padding-top: 12px; font-size: 15px; }
+  details.sources { font-size: 13px; color: var(--ink-soft); margin: 0 0 16px; }
+  details.sources summary { cursor: pointer; min-height: 32px; display: inline-flex; align-items: center; gap: 6px; list-style: none; }
+  details.sources summary::-webkit-details-marker { display: none; }
+  details.sources summary::before { content: "\2020"; font-size: 15px; }
+  details.sources ol { margin: 4px 0 0; padding-left: 20px; }
+  details.sources a { color: var(--ink-soft); word-break: break-all; }
+
+  .total { font-family: var(--display); font-size: 72px; line-height: 1; text-align: center; margin: 8px 0 2px; }
+  .total span { font-size: 28px; color: var(--ink-soft); }
+  .sub { text-align: center; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 18px; }
+  table.recap { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 18px; }
+  table.recap td { padding: 9px 2px; border-top: 1px solid var(--paper-2); vertical-align: top; }
+  table.recap td.yr { font-family: var(--display); font-size: 18px; white-space: nowrap; padding-right: 10px; }
+  table.recap .g { display: block; font-family: var(--pencil); font-size: 20px; line-height: 1.1; color: var(--ink-soft); white-space: nowrap; }
+  table.recap td.pts { text-align: right; font-weight: 700; white-space: nowrap; padding-left: 8px; }
+  table.recap .q { display: block; font-size: 12px; color: var(--muted); line-height: 1.3; }
+  table.recap td.pts b { display: inline-block; min-width: 46px; padding: 1px 6px; border: 2px double var(--band); color: var(--band); text-align: center; transform: rotate(-3deg); }
+  .shared { text-align: center; font-size: 13px; color: var(--b-exact); min-height: 20px; margin: 8px 0 0; }
+
+  .week { margin-top: 22px; border-top: 1px solid var(--ink); padding-top: 14px; }
+  .week h2 { font: 700 12px var(--type); letter-spacing: 2px; text-transform: uppercase; margin: 0 0 10px; display: flex; justify-content: space-between; }
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .day { border: 1px solid var(--ink-soft); padding: 6px 0 4px; font-size: 11px; color: var(--muted); }
+  .day b { display: block; font-size: 12px; color: var(--ink); min-height: 17px; }
+  .day.on { background: var(--ink); color: var(--paper-2); border-color: var(--ink); }
+  .day.on b { color: var(--sheet); }
+  .day.today { outline: 2px solid var(--terra); outline-offset: 1px; }
+  .day.future { border-style: dashed; }
+  .note { font-size: 13px; color: var(--ink-soft); margin: 10px 0 0; }
+  .next { text-align: center; font-size: 13px; color: var(--ink-soft); margin-top: 18px; }
+  .testbar { font-size: 12px; text-align: center; color: var(--terra); margin: 12px 0 0; }
+  .testbar a { color: var(--terra); }
+
+  .link.reset { font-size: 12px; color: var(--muted); margin-top: 18px; }
+  .link.reset.armed { color: var(--terra); }
+
+  @media (prefers-reduced-motion: reduce) { .stamp { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Year Game</h1>
+    <div class="meta" id="meta">&nbsp;</div>
+    <div class="rule"></div>
+  </header>
+  <main class="sheet" id="app"><p>Loading the moments&hellip;</p></main>
+  <div class="testbar" id="testbar" hidden></div>
+  <button class="link reset" id="reset" type="button">Reset my scores</button>
+</div>
+
+<script src="core.js"></script>
+<script>
+"use strict";
+const G = window.YearCore;
+const CSV_URL = "moments.csv";
+const KEY = "ltcg-yeargame-v1";
+const NAME = "Year Game";                     // placeholder until the game is named
+const BAND = { exact: "Exact", close: "Close", near: "Near", rough: "Rough", miss: "Off", none: "No answer" };
+const KEY_POINTS = { exact: 100, close: 85, near: 60, rough: 30, miss: 10 };
+const WEEKDAYS =["M", "T", "W", "T", "F", "S", "S"];
+
+const params = new URLSearchParams(location.search);
+const forcedDay = params.has("day") ? parseInt(params.get("day"), 10) : null;
+const today = Number.isInteger(forcedDay) && forcedDay > 0 ? forcedDay : G.dayNumber(new Date());
+const app = document.getElementById("app");
+let bank = [], byId = {}, store = { days: {} };
+
+// ---------- storage (never trusted to exist) ----------
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.days) store = s; } catch (e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+if (params.get("reset") === "1") { try { localStorage.removeItem(KEY); } catch (e) {} }
+load();
+
+// ---------- tiny DOM helper: text always goes in as text ----------
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid instanceof Node ? kid : String(kid));
+  return el;
+}
+function show(...nodes) { app.replaceChildren(...nodes); window.scrollTo(0, 0); }
+
+// ---------- data ----------
+async function start() {
+  const d = G.dateOfDay(today);
+  document.getElementById("meta").textContent =
+    `No. ${today} · ${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`;
+  if (forcedDay) {
+    const bar = document.getElementById("testbar");
+    bar.hidden = false;
+    bar.append(`Test mode: day ${today}. `, h("a", { href: "?" }, "Back to today"));
+  }
+  if (location.protocol === "file:") return showPicker();   // browsers block it, and Chrome takes seconds to say so
+  try {
+    const res = await fetch(CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    useCSV(await res.text());
+  } catch (e) { showPicker(); }
+}
+function useCSV(text) {
+  bank = G.playable(G.parseCSV(text));
+  byId = Object.fromEntries(bank.map(m => [m.id, m]));
+  if (bank.length < G.PER_DAY) return show(h("p", {}, "Not enough playable moments in the file."));
+  route();
+}
+function showPicker() {
+  const input = h("input", { type: "file", accept: ".csv,text/csv", onchange: () => {
+    const f = input.files[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => useCSV(r.result); r.readAsText(f, "utf-8");
+  } });
+  show(h("p", {}, "The moments file did not load. This page reads data/moments.csv through a local server (see prototype/game/README.md)."),
+       h("p", {}, "Or pick the file by hand:"), input);
+}
+
+// ---------- the day ----------
+function dayState() {
+  let s = store.days[today];
+  if (s && s.ids.every(id => byId[id])) return s;   // dealt once, kept on reload
+  if (s && s.guesses.length) return s;                // already played: keep even if the bank changed
+  return null;
+}
+function moment(s, i) { return byId[s.ids[i]] || { id: s.ids[i], prompt: "(moment no longer in the bank)", year: 0, year_label: "?", fact: "", source_1: "", source_2: "" }; }
+function route() {
+  const s = dayState();
+  if (!s) return intro();
+  if (s.guesses.length > s.seen) return reveal(s, s.guesses.length - 1);
+  if (s.guesses.length < s.ids.length) return ask(s, s.guesses.length);
+  summary(s);
+}
+
+function intro() {
+  show(
+    h("p", { class: "prompt" }, "Five moments from Lebanon’s history. Guess the year of each one."),
+    h("p", {}, "The closer you are, the more you score. Older events give you more room."),
+    h("div", { class: "key", "aria-label": "Scoring" }, ["exact", "close", "near", "rough", "miss"].map(b =>
+      h("span", { class: `stamp ${b}` }, `${BAND[b]} ${KEY_POINTS[b]}`))),
+    h("p", {}, "No timer. Same five for everyone today; new ones at midnight."),
+    h("button", { class: "btn primary", onclick: () => {
+      const day = G.momentsForDay(bank, today);
+      store.days[today] = { ids: day.map(m => m.id), guesses: [], seen: 0 };
+      save(); route();
+    } }, "Start")
+  );
+}
+
+function ticks(s, i) { return s.ids.map((_, k) => k < i ? "■" : k === i ? "▣" : "□").join(""); }
+
+function ask(s, i) {
+  const m = moment(s, i);
+  let era = "AD";
+  const yr = h("input", { id: "year", inputmode: "numeric", pattern: "[0-9]*", maxlength: "4", autocomplete: "off",
+    placeholder: "Year", "aria-label": "Your year", onkeydown: e => { if (e.key === "Enter") lock(); }, oninput: () => syncFromInput() });
+  // AD unless the player asks: a quiet link on every moment (never only on BC ones, or it would give the answer away)
+  const suffix = h("span", { class: "suffix", "aria-hidden": "true", hidden: true }, "BC");
+  const eraLink = h("button", { type: "button", class: "link eralink", "aria-pressed": "false", onclick: () => setEra(era === "BC" ? "AD" : "BC") }, "Before Christ? Tap for BC");
+  const why = h("p", { class: "why", "aria-live": "polite" });
+
+  function setEra(e) {
+    era = e; suffix.hidden = e !== "BC"; eraLink.setAttribute("aria-pressed", e === "BC");
+    eraLink.textContent = e === "BC" ? "Back to AD" : "Before Christ? Tap for BC";
+    yr.setAttribute("aria-label", e === "BC" ? "Your year, BC" : "Your year");
+    why.textContent = ""; yr.focus({ preventScroll: true });
+  }
+  function syncFromInput() { yr.value = yr.value.replace(/\D/g, "").slice(0, 4); why.textContent = ""; }
+  function lock() {
+    const r = G.toYear(yr.value, era);
+    if (r.year === null) { why.textContent = r.why; return; }
+    record(r.year);
+  }
+  function record(y) {
+    if (s.guesses.length !== i) return;   // a double tap never records twice
+    s.guesses.push(y); save(); route();
+  }
+
+  show(
+    h("div", { class: "count" }, h("span", {}, `Moment ${i + 1} of ${s.ids.length}`), h("span", { class: "ticks", "aria-hidden": "true" }, ticks(s, i))),
+    h("p", { class: "prompt" }, m.prompt),
+    h("div", { class: "yearrow", onclick: () => yr.focus() }, yr, suffix),
+    eraLink,
+    why,
+    h("button", { class: "btn primary", onclick: lock }, "Lock it in"),
+    h("button", { class: "link", type: "button", onclick: () => record(null) }, "No idea, skip this one")
+  );
+  yr.focus({ preventScroll: true });     // number pad up straight away on phones
+}
+
+function domain(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } }
+function yoursLine(g, r, m) {
+  if (g === null) return "You skipped this one.";
+  if (r.off === 0) return `You said ${G.label(g)}. Spot on.`;
+  return `You said ${G.label(g)}, ${r.off} year${r.off === 1 ? "" : "s"} off.`;
+}
+
+function reveal(s, i) {
+  const m = moment(s, i), g = s.guesses[i], r = G.score(g, m.year), last = i === s.ids.length - 1;
+  const srcs = [m.source_1, m.source_2].filter(Boolean);
+  show(
+    h("div", { class: "count" }, h("span", {}, `Moment ${i + 1} of ${s.ids.length}`), h("span", { class: "ticks", "aria-hidden": "true" }, ticks(s, i + 1))),
+    h("p", { class: "prompt small" }, m.prompt),
+    h("div", { class: "answer" }, m.year_label),
+    h("div", { class: "stampline" }, h("span", { class: `stamp ${r.band}` }, `${BAND[r.band]} · ${r.points}`)),
+    h("p", { class: "yours" }, yoursLine(g, r, m)),
+    m.fact ? h("p", { class: "fact" }, m.fact) : null,
+    srcs.length ? h("details", { class: "sources" }, h("summary", {}, "Sources"),
+      h("ol", {}, srcs.map(u => h("li", {}, h("a", { href: u, target: "_blank", rel: "noopener" }, domain(u)))))) : null,
+    h("button", { class: "btn primary", onclick: () => { s.seen = i + 1; save(); route(); } }, last ? "See your score" : "Next moment")
+  );
+}
+
+function dayTotal(s) { return s.ids.reduce((t, id, i) => t + (i < s.guesses.length ? G.score(s.guesses[i], moment(s, i).year).points : 0), 0); }
+function finished(s) { return !!s && s.guesses.length === s.ids.length; }
+
+function summary(s) {
+  const total = dayTotal(s), line = `${NAME} #${today} · ${total}/${s.ids.length * 100}`;
+  const msg = h("p", { class: "shared", "aria-live": "polite" });
+  async function share() {
+    try {
+      if (navigator.share) { await navigator.share({ text: line }); msg.textContent = "Shared."; return; }
+      await navigator.clipboard.writeText(line); msg.textContent = "Copied: " + line;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      msg.textContent = line;                // last resort: show it to copy by hand
+    }
+  }
+  const rows = s.ids.map((id, i) => {
+    const m = moment(s, i), g = s.guesses[i], r = G.score(g, m.year);
+    return h("tr", {},
+      h("td", { class: "yr" }, m.year_label),
+      h("td", {}, h("span", { class: "g" }, g === null ? "skipped" : G.label(g)), h("span", { class: "q" }, m.prompt)),
+      h("td", { class: "pts" }, h("b", { class: r.band, title: BAND[r.band] }, r.points)));
+  });
+  show(
+    h("div", { class: "total" }, String(total), h("span", {}, `/${s.ids.length * 100}`)),
+    h("div", { class: "sub" }, `Day ${today}`),
+    h("table", { class: "recap" }, h("tbody", {}, rows)),
+    h("button", { class: "btn primary", onclick: share }, "Share score"),
+    msg,
+    week(),
+    h("p", { class: "next", id: "countdown" }, countdown())
+  );
+  if (!forcedDay) setInterval(() => { const c = document.getElementById("countdown"); if (c) c.textContent = countdown(); }, 30000);
+}
+
+function week() {
+  const days = G.weekOf(today);
+  let sum = 0, played = 0, missed = 0;
+  const cells = days.map((n, k) => {
+    const s = n >= 1 ? store.days[n] : null, done = finished(s);
+    if (done) { sum += dayTotal(s); played++; } else if (n < today) missed++;
+    return h("div", { class: `day${done ? " on" : ""}${n === today ? " today" : ""}${n > today ? " future" : ""}` },
+      WEEKDAYS[k], h("b", {}, done ? String(dayTotal(s)) : ""));
+  });
+  const note = played === 7 ? "Perfect week. In the full game this unlocks the week’s prize card."
+    : missed ? "A day was missed, so no perfect week this time. A new week starts on Monday."
+    : `Perfect week: play all seven days. ${7 - played} to go.`;
+  return h("section", { class: "week" },
+    h("h2", {}, h("span", {}, "This week"), h("span", {}, `${sum} / 3500`)),
+    h("div", { class: "days" }, cells),
+    h("p", { class: "note" }, note));
+}
+
+function countdown() {
+  if (forcedDay) return "Test day. Change ?day= in the address bar for another.";
+  const now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const mins = Math.max(0, Math.ceil((mid - now) / 60000));
+  return `New moments in ${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, "0")} min.`;
+}
+
+// two taps to wipe every saved day on this browser; the first tap only arms it for 4 s
+const resetBtn = document.getElementById("reset");
+let armTimer = null;
+resetBtn.addEventListener("click", () => {
+  if (!resetBtn.classList.contains("armed")) {
+    resetBtn.classList.add("armed"); resetBtn.textContent = "Tap again to wipe all your scores";
+    armTimer = setTimeout(() => { resetBtn.classList.remove("armed"); resetBtn.textContent = "Reset my scores"; }, 4000);
+    return;
+  }
+  clearTimeout(armTimer);
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  store = { days: {} };
+  resetBtn.classList.remove("armed"); resetBtn.textContent = "Scores wiped";
+  setTimeout(() => { resetBtn.textContent = "Reset my scores"; }, 2000);
+  if (bank.length) route();
+});
+
+start();
+</script>
+</body>
+</html>
